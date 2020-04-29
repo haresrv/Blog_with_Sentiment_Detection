@@ -14,7 +14,7 @@
         <title>Flask Blog</title>
     {% endif %}
 </head>
-<body>
+<body  onscroll="myScript()">
     <header class="site-header">
       <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
         <div class="container">
@@ -73,7 +73,18 @@
         </div>
     </footer>
 
-
+        <script>
+      function myScript()
+      {
+        document.cookie='js='+window.scrollY
+      }
+    </script>
+    <script>
+      
+        window.scrollTo(0,{{ScrollY}})
+        console.log("HDHDH")
+    
+    </script>
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
