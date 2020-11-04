@@ -1,20 +1,46 @@
+from flask_sqlalchemy import SQLAlchemy
 from wsgiref import simple_server
 from flask import Flask, render_template ,redirect, url_for,request,session,flash
 from functools import wraps
 import re
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
 import bcrypt
-import keras
+import json
+import time
+from keras_preprocessing.text import tokenizer_from_json
+from keras.preprocessing.sequence import pad_sequences
+from keras.models import model_from_json
+import pandas as pd
 
-print(__name__)
-
+def init():
+    with open('GRU_model_architecture.json', 'r') as f:
+        model = model_from_json(f.read())
+    model.load_weights('GRU_model_weights.h5')    
+    return model
+    
+with open('tokenizer.json') as f:
+    data = json.load(f)
+    tokenizer = tokenizer_from_json(data)
+    
+model=init()    
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 db = SQLAlchemy(app)
 app.config['SECRET_KEY'] = '5791628bb0b13ce0c676dfde280ba245'
 current_user = ""
 current_user_id = 0
+
+def predict(text):
+    start_at = time.time()
+    # Tokenize text
+    x_test = pad_sequences(tokenizer.texts_to_sequences([text]), maxlen=300)
+    # Predict
+    score = model.predict([x_test])[0]
+
+    return {"score": float(score),
+       "elapsed_time": time.time()-start_at}
+
+print(predict("HI THERE"))
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -33,10 +59,11 @@ class Post(db.Model):
     title = db.Column(db.String(100), nullable=False)
     date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     content = db.Column(db.Text, nullable=False)
+    sentiment = db.Column(db.Text)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     def __repr__(self):
-        return f"Post('{self.title}', '{self.date_posted}')"
+        return f"Post('{self.title}', '{self.date_posted}', '{self.sentiment}')"
 
 
 # posts = [
@@ -101,11 +128,11 @@ def row2dict(row):
     for column in row.__table__.columns:
         if(column.name=='user_id'):
             # print(int(str(getattr(row, column.name))))
-            d["author"] =   str(db.session.query(User).filter_by(id=int(str(getattr(row, column.name)))).first().username)
+            if(db.session.query(User).filter_by(id=int(str(getattr(row, column.name)))).first()!=None):
+                d["author"] =   str(db.session.query(User).filter_by(id=int(str(getattr(row, column.name)))).first().username)
         else:
             d[column.name] = str(getattr(row, column.name))
     return d
-
 
 
 def update():
@@ -135,7 +162,13 @@ def create():
 
         else:
             # print(type(current_user_id))
-            db.session.add(Post(title = request.form["title"],content = request.form["content"],user_id = current_user_id ))
+            x=predict(request.form["content"])
+            print(x)
+            if(x["score"]>0.5):
+                sentiment="Toxic";
+            else:
+                sentiment="Not Toxic";
+            db.session.add(Post(title = request.form["title"],content = request.form["content"],user_id = current_user_id,sentiment=sentiment))
             # print(dict(db.session.query(Post).filter_by(title=request.form["title"]).__dict__))
             db.session.commit()
             update()
@@ -167,6 +200,15 @@ def login():
             return redirect(url_for('home'))
 
     return render_template('login.html', error=error)
+
+@app.route('/deletePost/<blogid>')
+@login_required
+def deletePost(blogid):
+    Post.query.filter_by(id=int(blogid)).delete()
+    # db.session.delete(obj)
+    print(Post.query.filter_by(id=int(blogid)))
+    db.session.commit()
+    return redirect(url_for('home'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
