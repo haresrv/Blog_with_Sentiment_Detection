@@ -39,7 +39,11 @@ with open('tokenizer.json') as f:
     data = json.load(f)
     tokenizer = tokenizer_from_json(data)
     
-model=init()    
+model=init()   
+import os
+os.remove("GRU_model_architecture.json")
+os.remove("tokenizer.json")
+os.remove("GRU_model_weights.h5") 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 db = SQLAlchemy(app)
