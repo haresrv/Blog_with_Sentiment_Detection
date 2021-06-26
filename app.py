@@ -11,39 +11,24 @@ from keras_preprocessing.text import tokenizer_from_json
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import model_from_json
 import pandas as pd
-
+import os
 import requests 
-link = "https://www.kaggleusercontent.com/kf/46112612/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..AkAOfiqZdRbd1eFeI3WFJQ.7eVop-R5834i378A6tu3-SlRrYZJKxG1NvoL3gq5nkHqpfVFF47xmouNxbcQRpwTjA_D0o5fI2AP1fHLw1TqTTbwV1TP3By98LjDmbxtiu8aonfDp9tesmEu9e51QnBZCZPADgrTi1hL1lt-3Di3XritE6smVr4-dPSUXLTJ6cmJofBfZpkUg-3uIqys6wrvT73dNWadzUCLGCTzCeQlWfqEV1_N97vA3O4b92QZT8N0QodhAc8qKWthcnBYWVsw4dsJoo4Q3tlNptiHeW6h78_5mmaqKmgNTdR_fM6yVu8SmakfvJAK66WWYIjaM6j5S5CMRcoSmwBzbgoEjYOd6pDIq4hiKFH_V3CY6-Q5iLa1Wo37-cYOTaKZXvM9tJXfZH6CcTACnb3O-W5VN8NFo8Xcw9yegTuOULI5zwPPXqdlYcWOG1je0Hoe0ENOCdC2W4GgZR7DqyhpF21lx5qwn_bdg19f7NsBoiUYyFUKsu3emzVlhG--amlk2uH0DFAg0T5D6588Y70zhvFUiNMy4UrZY8r8l9pYFk0pVZlRY2oR056syzm6syuDFdSMBxtCyKi7To94j7yY2JD2cDv7iPVQImRo0GoRsX0eYqnCOMUWJtec83_gRRkteogP7bMIgVPUbouGMKknKhELPXPy0m8_T5w-oIsCYWLt5d3yxSY.y84urFSNqoWcGW-foO5T9A/GRU_model_weights.h5"
-r = requests.get(link) 
-with open("GRU_model_weights.h5",'wb') as f: 
-    f.write(r.content) 
-
-link = "https://www.kaggleusercontent.com/kf/46112612/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..8FPB4aj2MoVXUkmaCWIe2g.-JE8GSABWNmSLOeLZIgQisLpkQ48YeVhBhKtUfirYv_EVVhjR2-pPedkQhB_i98EezdYUAX38kN7rMwMrlp7O9gMn9xUIudN-fddiFYWFKDOGYYfzSIgAYKQxumxSIoFUgGr-coPBkB8Ik8IxvNoIHF6YRWSMp02iJoQOg6ZNy3tPa0sVUUHAs_ALYvozjgwzoCzsP3JcOVTbUiieMmCVFF2Dl40fcC-WmHiWia1uF_KWrSgG9KUuVtJfF5Su53-nPl3SOg23zae-0AkpYttN_nVtVFC7UaoY2GYYsvwtFhPHDBOJwkDJhuK3w3MGDQAOA2yrfB-dXUyN2zN4ifpuTlEEe57YXk6SqEbmprpW8xk2MDf4-EamaVW0hH2NDkM96IqkW0Nosaezw_XEZYeBePnXMPqZVwhrFAvWmyCStooSDulz_VCs0YkgnXzibh_iS20MOUycXtM4_TVB7qYJcLie2WcqYTTqtwYqOnTcLZmY9aHggYbkdJxstK98cjTjWbpxrr9Ayze7uWoQ9SjKQVABcgMLYIhZ3t679FJmabTedvxOfxcpyp1_Ne8-cEO3dJlJ-F8eUteDXNhWiAqY7nyOKWiETgXtLCraKYKLEK45SYwPXjmZdv_3KaNT1YczuvALi10QrvCpHLHw14CZLrjKS0TyXiw2whXgFvcj6Q.o5zrK5Wjm3DZBP9dHlzsQQ/GRU_model_architecture.json"
-r = requests.get(link) 
-with open("GRU_model_architecture.json",'wb') as f: 
-    f.write(r.content) 
-
-link = "https://www.kaggleusercontent.com/kf/46112612/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..o-xW7eD2qSW0-fnIH2KRlQ.TVrSzSZ0b1yhQuzsw71uBED4JpFiG1OfXwdyWnR4-Wnf8ryKfdtBPZbmHPnv7v4kSSnauUsnk3CnLbEcMGRD2t_QfVfBiAxjmzUTYyGkd_r_2jCwjpsIy22D8Za0sI2A_sgv38OuXkkaexuxYoy2lqtcRdOzYIUvRlMZbxdZFH16upKjdDaGFLJG6hKeU4B18gOdJZ_xJH7JlwBU9zVdO0b6-k1cXTYTcp-W6pSpMagjKtvCza8yDTOJgPdZIog9vXFHDtUk5XCj7U8kZLU3coo5mv5ESukVsxRzTkYjRccKL1Cbowa12oggFJTGadL4qJLAE7Lx1awpWdvV5PRtxRVTgnIfkMipA9xbLfGDreeHqKBdjx4rMzaPuJGDZ5FrML8tDJNHrkgIqSlDXSXYyTdlpxmuUsSW-mHt32ho5nZYgObnI86e1JXwsgxFs2GH7gmGBc6FUfQqE6iIJer3UBnQzphRAziLh_aUi6oH26j2Sl_m19pjq33aofwKug9VzQYa7YCT_TfYt6H8gpn-adzVEqcNCifqC_0t1ZQkFZetMs4IUgSkytaVySsI_XN6h5ss4ygectHxeAmqvFZJSHqwZxST82uZP15yhWW9oP3MBK58u__jBnQk7QlnU3P3Ct2I0a32EJaUqN0k4yh-0u4m-ibihEL7dV3ayxhTXbs.bD9TsPT-h2U-LzQH5n_-Sw/tokenizer.json"
-r = requests.get(link) 
-with open("tokenizer.json",'wb') as f: 
-    f.write(r.content) 
 
 
 def init():
-    with open('GRU_model_architecture.json', 'r') as f:
+    with open('models/GRU_model_architecture.json', 'r') as f:
         model = model_from_json(f.read())
-    model.load_weights('GRU_model_weights.h5')    
+    model.load_weights('models/GRU_model_weights.h5')    
     return model
     
-with open('tokenizer.json') as f:
+with open('models/tokenizer.json') as f:
     data = json.load(f)
     tokenizer = tokenizer_from_json(data)
     
 model=init()   
-import os
-os.remove("GRU_model_architecture.json")
-os.remove("tokenizer.json")
-os.remove("GRU_model_weights.h5") 
+os.remove("models/GRU_model_architecture.json")
+os.remove("models/tokenizer.json")
+os.remove("models/GRU_model_weights.h5") 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 db = SQLAlchemy(app)
@@ -104,8 +89,6 @@ class Post(db.Model):
 # ]
 
 posts = []
-
-# users = {"Chosen_One":"DrewMcintyre123","Architect":"SethRollins123","Rated_R_Superstar":"Edge123","Phenomenal_One":"AJStyles123"}
 
 def login_required(f):
     @wraps(f)
@@ -287,8 +270,7 @@ def page_not_found(e):
 
 if __name__ == "__main__":
     host = '0.0.0.0'
-    port = 5000
+    port = int(os.environ.get('PORT'))
     httpd = simple_server.make_server(host, port, app)
     print("Serving on %s %d" % (host, port))
     httpd.serve_forever()
-
